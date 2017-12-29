@@ -1,6 +1,8 @@
-requests = []
+import numpy as np
 
-for i in range(50):
-	requests.append('req' + str(i))
+N = 10
 
-print(requests[2])
+usage = np.zeros((N,N), dtype = np.int16)
+
+# print(type(usage))
+print(usage)

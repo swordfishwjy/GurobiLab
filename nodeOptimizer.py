@@ -7,9 +7,17 @@
 # 第三：本程序所有index对应：self->node0, neighbor1 ~neighbor9 -> node1~9
 
 from gurobipy import *
+import numpy as np
+import random
 
-LIMIT = 9
-NUM_REQUESTS = 30
+LIMIT = 6
+NUM_REQUESTS = 50
+NUM_NODE = 10
+ALL_NODE = 10
+NODETAG = 0 #标记这是哪个node
+# create a matrix to save the result of final assignment of requests
+# x_ij 表示 node_i 使用了来自于node_j的多少资源
+usage = np.zeros((ALL_NODE,ALL_NODE), dtype = np.int16)
 
 try:
 	# Create model
@@ -25,7 +33,7 @@ try:
 	nodes = []
 	for i in range(10):
 		nodes.append('node' + str(i))
-	# the available capacity of neighbors, sum=30+4*9=66 > 50
+	# the available capacity of neighbors, sum=30+4*9=66 > 50 自身只有30可以用，其他的邻居协助
 	capacity = {
 		'node0': 30,
 		'node1': 4,
@@ -107,13 +115,22 @@ try:
 	print("")
 	for i in range(NUM_REQUESTS):
 		print ('req' + str(i).ljust(2), end="    ")
-		for j in range(10):
+		for j in range(NUM_NODE):
 			print(int(abs(varResult[index].x)), end = "      ")
 			index += 1
 		print("")
 
+	count = 0
+	for j in nodes:
+		temp = 0
+		for i in requests:
+			temp += choices.select(i,j)[0].x
+		usage[NODETAG][count] = int(temp)
+		count += 1
+
+	print(usage)
 	print('Object: minimum cost => ', m.objVal)
-	print('Optimization Time ==>', m.Runtime)
+	print('Optimization Time ==>%.5f second' %(m.Runtime))
 
 
 except GurobiError:
