@@ -11,7 +11,11 @@
 
 
 import numpy as np
+from gurobipy import *
 import random
+import os
+from multiprocessing import Manager, Process, Pool
+from func1 import gurobi
 
 # neighbor relation
 # 需要有一个数据结构来记录node间的依赖关系，注意：A和 B,C 是邻居，不能说明 B和C 是邻居； A==>B, 也不意味着 B==>A, 即 A会使用B的资源，B不一定会使用A的资源。
@@ -62,6 +66,90 @@ for i in range(ALL_NODE):
 		if(i==j):
 			initCapacity[i][j] = CAPACITY - temp
 
+# 设置node的computer cost
+compCost = np.zeros((ALL_NODE, ALL_NODE), dtype = np.int16)
+for i in range(ALL_NODE):
+	for j in range(ALL_NODE):
+		if(i==j):
+			compCost[i][j] = 1
+
+compCost[0][1] = 2
+compCost[0][3] = 3 
+compCost[0][4] = 3
+compCost[1][4] = 2
+compCost[1][5] = 3    
+compCost[2][5] = 2
+compCost[2][6] = 3 
+compCost[3][0] = 3
+compCost[3][5] = 3
+compCost[4][0] = 2
+compCost[4][7] = 3
+compCost[4][8] = 2
+compCost[5][1] = 3
+compCost[5][2] = 2
+compCost[5][6] = 3
+compCost[6][2] = 2
+compCost[6][9] = 3
+compCost[7][3] = 2
+compCost[7][4] = 3
+compCost[7][8] = 2
+compCost[8][5] = 2
+compCost[8][7] = 3
+compCost[8][9] = 2
+compCost[9][8] = 3
+compCost[9][6] = 3
+
+# 设置node的link cost
+linkCost = np.zeros((ALL_NODE, ALL_NODE), dtype = np.int16)
+for i in range(ALL_NODE):
+	for j in range(ALL_NODE):
+		if(i==j):
+			linkCost[i][j] = 1
+
+linkCost[0][1] = 3
+linkCost[0][3] = 4 
+linkCost[0][4] = 3
+linkCost[1][4] = 3
+linkCost[1][5] = 2    
+linkCost[2][5] = 4
+linkCost[2][6] = 2 
+linkCost[3][0] = 2
+linkCost[3][5] = 3
+linkCost[4][0] = 3
+linkCost[4][7] = 2
+linkCost[4][8] = 3
+linkCost[5][1] = 2
+linkCost[5][2] = 3
+linkCost[5][6] = 4
+linkCost[6][2] = 2
+linkCost[6][9] = 2
+linkCost[7][3] = 3
+linkCost[7][4] = 2
+linkCost[7][8] = 4
+linkCost[8][5] = 3
+linkCost[8][7] = 2
+linkCost[8][9] = 3
+linkCost[9][8] = 4
+linkCost[9][6] = 2
+
+# 设置此时刻的各node收到的requests：
+requests = np.array([], dtype = np.int16)
+for i in range(10):
+	temp = random.randint(40,45)
+	requests = np.append(requests,temp)
+
+# # 设置每个node有几个可分配资源的nodes（包括自己）
+# nodesNum = np.array([])
+# for i in range(10):
+# 	temp = 0
+# 	for j in range(10):
+# 		if(relMatrix[i][j]!= 0):
+# 			temp += 
+# 	nodesNum = np.append(nodesNum, temp)
+
+# print(nodesNum)
+
+# print(linkCost) 
 # print(relMatrix)
 # print(initCapacity)
 
@@ -72,5 +160,53 @@ for i in range(ALL_NODE):
 #（2）此时的computer cost和link cost
 #（3）该node在此timeslot会有多少request需要处理
 #（4）一共有几个nodes可用
-# 
+
+# 存储每个shared objects
+capa_nodes = []
+compCost_nodes = []
+linkCost_nodes = []
+requests_nodes = []
+#收集返回的usage 数据：
+usage_nodes = []
+
+p = Pool(10)
+manager = Manager()
+for i in range(10):
+	capa_pernode = manager.Array('i', initCapacity[i])	
+	compCost_pernode = manager.Array('i', compCost[i])
+	linkCost_pernode = manager.Array('i', linkCost[i])
+	requests_pernode = manager.Value('i', requests[i])
+	usage_pernode = manager.Array('i', initCapacity[i])
+
+	capa_nodes.append(capa_pernode)
+	compCost_nodes.append(compCost_pernode)
+	linkCost_nodes.append(linkCost_pernode)
+	requests_nodes.append(requests_pernode)
+	usage_nodes.append(usage_pernode)
+
+
+	p.apply_async(gurobi, (capa_pernode, compCost_pernode, 
+		linkCost_pernode, requests_pernode, usage_pernode))
+
+p.close()
+p.join()
+
+
+print("")
+print("The feedback of usage after one time iteration:")
+for i in range(ALL_NODE):
+	for j in usage_nodes[i]:
+		print (str(j).ljust(4), end ="")
+	print("")
+print("")
+
+# for i in range(ALL_NODE):
+# 	for j in capa_nodes[i]:
+# 		print (str(j).ljust(4), end ="")
+# 	print("")
+# print("")
+print('Optimization Complete!!!!!!!!!!!!!!!!!!!!!!!!')
+
+
+
 
