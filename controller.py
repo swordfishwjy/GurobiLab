@@ -138,17 +138,7 @@ for i in range(10):
 	temp = random.randint(40,45)
 	requests = np.append(requests,temp)
 
-# # 设置每个node有几个可分配资源的nodes（包括自己）
-# nodesNum = np.array([])
-# for i in range(10):
-# 	temp = 0
-# 	for j in range(10):
-# 		if(relMatrix[i][j]!= 0):
-# 			temp += 
-# 	nodesNum = np.append(nodesNum, temp)
-
 # print(nodesNum)
-
 # print(linkCost) 
 # print(relMatrix)
 # print(initCapacity)
