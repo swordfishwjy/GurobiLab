@@ -22,6 +22,9 @@ from func1 import gurobi
 # 一个matrix：【】N x N的矩阵，每个元素X_ij 表示 node i 是否可使用 node j 的资源？ 1==> Yes, 0==> No
 ALL_NODE = 10
 CAPACITY = 50
+random.seed(20)
+updateTag = 1
+ITERATION_NUM = 50
 
 # 设置依赖关系
 relMatrix = np.identity(ALL_NODE, dtype = np.int16)
@@ -135,7 +138,7 @@ linkCost[9][6] = 2
 # 生成此时刻的各node实际收到的requests：
 realRequests = np.zeros(ALL_NODE, dtype = np.int16)
 for i in range(10):
-	temp = random.randint(40,70)
+	temp = random.randint(40,60)
 	realRequests[i] = temp
 
 # 每个node可以使用的资源总和
@@ -151,6 +154,16 @@ for i in range(ALL_NODE):
 		handleRequests[i] = nodesCanUseCapa[i]
 	else:
 		handleRequests[i] = realRequests[i]
+
+# 统计有多少请求到达edge cloud：
+totalRequests = 0
+for i in range(ALL_NODE):
+	totalRequests += realRequests[i]
+
+# 统计有多少请求被受理：
+totalHandles = 0
+for i in range(ALL_NODE):
+	totalHandles += handleRequests[i]
 
 
 # print(nodesNum)
@@ -169,7 +182,12 @@ for i in range(ALL_NODE):
 
 updateCapa = np.array(initCapacity)
 testCapa = np.zeros(ALL_NODE, dtype = np.int16) #用来测试leftCapa是不是都为0
-for timeSlot in range(10):
+costCollect = np.zeros(ALL_NODE, dtype = np.int16)
+totalCost = 0
+
+
+for timeSlot in range(ITERATION_NUM):
+
 	# 存储每个shared objects
 	capa_nodes = []
 	compCost_nodes = []
@@ -177,6 +195,7 @@ for timeSlot in range(10):
 	requests_nodes = []
 	#收集返回的usage 数据：
 	usage_nodes = []
+	cost_nodes = []
 
 	p = Pool(10)
 	manager = Manager()
@@ -186,24 +205,29 @@ for timeSlot in range(10):
 		linkCost_pernode = manager.Array('i', linkCost[i])
 		requests_pernode = manager.Value('i', handleRequests[i])
 		usage_pernode = manager.Array('i', updateCapa[i])
+		cost_pernode= manager.Value('i', costCollect[i])
 
 		capa_nodes.append(capa_pernode)
 		compCost_nodes.append(compCost_pernode)
 		linkCost_nodes.append(linkCost_pernode)
 		requests_nodes.append(requests_pernode)
 		usage_nodes.append(usage_pernode)
+		cost_nodes.append(cost_pernode)
 
 
 		p.apply_async(gurobi, (capa_pernode, compCost_pernode, 
-			linkCost_pernode, requests_pernode, usage_pernode))
+			linkCost_pernode, requests_pernode, usage_pernode, cost_pernode))
 
 	p.close()
 	p.join()
 
-	# 根据usage 更新下一次的资源分布
+	for i in range(ALL_NODE):
+		totalCost += cost_nodes[i].value
+	
+	##++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	#+++++++++++++++++++ 根据usage 更新下一次的资源分布
 	# create 一个临时的array来保存中转的更新信息,每个node给别人的资源有多少别人没用，然后拿它们分配给给资源不够的邻居
 	leftCapa = np.zeros(ALL_NODE, dtype = np.int16)
-
 
 	# 临时更新用的tempCapa
 	tempCapa = np.array(updateCapa)
@@ -228,13 +252,44 @@ for timeSlot in range(10):
 				leftCapa[j] -= 1
 
 
-	# renew updateCapa
-	updateCapa = np.array(tempCapa)
+	# 更新 updateCapa
+	if(updateTag == 1):
+		updateCapa = np.array(tempCapa)
+	#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-	print(updateCapa)
-	print("")
+	# 生成下时刻的各node实际收到的requests：
+	realRequests = np.zeros(ALL_NODE, dtype = np.int16)
+	for i in range(10):
+		temp = random.randint(40,60)
+		realRequests[i] = temp
 
-	
+	# 每个node可以使用的资源总和
+	nodesCanUseCapa = np.zeros(ALL_NODE, dtype = np.int16)
+	for i in range(ALL_NODE):
+		for j in range(ALL_NODE):
+			nodesCanUseCapa[i] += updateCapa[i][j]
+
+	# 设置下个时刻各node实际可以handle的requests 总数；超过capacity的请求被拒绝
+	handleRequests = np.zeros(ALL_NODE, dtype = np.int16)
+	for i in range(ALL_NODE):
+		if nodesCanUseCapa[i] < realRequests[i]:
+			handleRequests[i] = nodesCanUseCapa[i]
+		else:
+			handleRequests[i] = realRequests[i]
+
+	# 统计有多少请求到达edge cloud：
+	for i in range(ALL_NODE):
+		totalRequests += realRequests[i]
+
+	# 统计有多少请求被受理：
+	for i in range(ALL_NODE):
+		totalHandles += handleRequests[i]
+
+	# print(updateCapa)
+	# print("")
+
+print(totalCost)
+print(totalHandles / totalRequests)
 
 	# print("The updateCapa :")
 	# for i in range(ALL_NODE):
@@ -276,18 +331,18 @@ for timeSlot in range(10):
 # 	print("")
 # print("")
 
-print("")
-print("The initCapacity :")
-for i in range(ALL_NODE):
-	for j in initCapacity[i]:
-		print (str(j).ljust(4), end ="")
-	print("")
-print("")
+# print("")
+# print("The initCapacity :")
+# for i in range(ALL_NODE):
+# 	for j in initCapacity[i]:
+# 		print (str(j).ljust(4), end ="")
+# 	print("")
+# print("")
 
 # print("left capacity:")
 # print(leftCapa)
 
-print('Optimization Complete!!!!!!!!!!!!!!!!!!!!!!!!')
+# print('Optimization Complete!!!!!!!!!!!!!!!!!!!!!!!!')
 
 
 

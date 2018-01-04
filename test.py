@@ -48,8 +48,9 @@
 #     print(arr[:])
 
 import numpy as np
+import random
 
-a = np.array([1,2,3])
-b = np.array(a)
+a = [1, 2]
+b = a
 b[0] = 100
-print(b[0])
+print(a[0])

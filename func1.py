@@ -10,7 +10,7 @@ from gurobipy import *
 import numpy as np
 import random
 
-def gurobi(capa, comp, link, reqs, usage):
+def gurobi(capa, comp, link, reqs, usage, cost):
 	# cost limitation
 	LIMIT = 100
 	# task request number
@@ -87,6 +87,8 @@ def gurobi(capa, comp, link, reqs, usage):
 
 		# optimization
 		m.optimize()
+
+		cost.value = m.objVal 
 
 		#print result
 		# varResult = m.getVars()
