@@ -50,7 +50,10 @@
 import numpy as np
 import random
 
-a = [1, 2]
-b = a
-b[0] = 100
-print(a[0])
+a = 26
+for i in range(100):
+	print(a, end = " ")
+	if(a == 75):
+		a = 25
+	a += 1
+	

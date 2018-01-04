@@ -24,7 +24,7 @@ ALL_NODE = 10
 CAPACITY = 50
 random.seed(20)
 updateTag = 1
-ITERATION_NUM = 50
+ITERATION_NUM = 48
 
 # 设置依赖关系
 relMatrix = np.identity(ALL_NODE, dtype = np.int16)
@@ -138,7 +138,7 @@ linkCost[9][6] = 2
 # 生成此时刻的各node实际收到的requests：
 realRequests = np.zeros(ALL_NODE, dtype = np.int16)
 for i in range(10):
-	temp = random.randint(40,60)
+	temp = random.randint(20,80)
 	realRequests[i] = temp
 
 # 每个node可以使用的资源总和
@@ -260,7 +260,7 @@ for timeSlot in range(ITERATION_NUM):
 	# 生成下时刻的各node实际收到的requests：
 	realRequests = np.zeros(ALL_NODE, dtype = np.int16)
 	for i in range(10):
-		temp = random.randint(40,60)
+		temp = random.randint(20,80)
 		realRequests[i] = temp
 
 	# 每个node可以使用的资源总和
@@ -299,13 +299,13 @@ print(totalHandles / totalRequests)
 
 
 
-# print("")
-# print("The initCapacity :")
-# for i in range(ALL_NODE):
-# 	for j in capa_nodes[i]:
-# 		print (str(j).ljust(4), end ="")
-# 	print("")
-# print("")
+print("")
+print("The initCapacity :")
+for i in range(ALL_NODE):
+	for j in initCapacity[i]:
+		print (str(j).ljust(4), end ="")
+	print("")
+print("")
 
 # print("nodesCanUseCapa: ")
 # print(nodesCanUseCapa)
@@ -324,12 +324,12 @@ print(totalHandles / totalRequests)
 # 	print("")
 # print("")
 
-# print("The updateCapa :")
-# for i in range(ALL_NODE):
-# 	for j in updateCapa[i]:
-# 		print (str(j).ljust(4), end ="")
-# 	print("")
-# print("")
+print("The updateCapa :")
+for i in range(ALL_NODE):
+	for j in updateCapa[i]:
+		print (str(j).ljust(4), end ="")
+	print("")
+print("")
 
 # print("")
 # print("The initCapacity :")
