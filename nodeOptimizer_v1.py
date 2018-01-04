@@ -10,8 +10,8 @@ from gurobipy import *
 import numpy as np
 import random
 
-LIMIT = 6
-NUM_REQUESTS = 50
+LIMIT = 100
+NUM_REQUESTS = 60
 NUM_NODE = 10
 ALL_NODE = 10
 NODETAG = 0 #标记这是哪个node
@@ -106,32 +106,32 @@ try:
 	# optimization
 	m.optimize()
 
-	#print result
-	varResult = m.getVars()
-	index = 0
-	print("       ", end="")
-	for i in nodes:
-		print(i.ljust(7), end="")
-	print("")
-	for i in range(NUM_REQUESTS):
-		print ('req' + str(i).ljust(2), end="    ")
-		for j in range(NUM_NODE):
-			print(int(abs(varResult[index].x)), end = "      ")
-			index += 1
-		print("")
+	# #print result
+	# varResult = m.getVars()
+	# index = 0
+	# print("       ", end="")
+	# for i in nodes:
+	# 	print(i.ljust(7), end="")
+	# print("")
+	# for i in range(NUM_REQUESTS):
+	# 	print ('req' + str(i).ljust(2), end="    ")
+	# 	for j in range(NUM_NODE):
+	# 		print(int(abs(varResult[index].x)), end = "      ")
+	# 		index += 1
+	# 	print("")
 
-	count = 0
-	for j in nodes:
-		temp = 0
-		for i in requests:
-			temp += choices.select(i,j)[0].x
-		usage[NODETAG][count] = int(temp)
-		count += 1
+	# count = 0
+	# for j in nodes:
+	# 	temp = 0
+	# 	for i in requests:
+	# 		temp += choices.select(i,j)[0].x
+	# 	usage[NODETAG][count] = int(temp)
+	# 	count += 1
 
-	print(usage)
-	print('Object: minimum cost => ', m.objVal)
-	print('Optimization Time ==>%.5f second' %(m.Runtime))
+	# print(usage)
+	# print('Object: minimum cost => ', m.objVal)
+	# print('Optimization Time ==>%.5f second' %(m.Runtime))
 
 
 except GurobiError:
-	print('Error reported!')
+	print('Error reported!!!!!!')

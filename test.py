@@ -47,8 +47,9 @@
 #     print(num.value)
 #     print(arr[:])
 
-capacity = {}
-capacity['node0'] = 1
-capacity['node1'] = 11
-for i in capacity:
-	print(i)
+import numpy as np
+
+a = np.array([1,2,3])
+b = np.array(a)
+b[0] = 100
+print(b[0])

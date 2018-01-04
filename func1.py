@@ -45,6 +45,7 @@ def gurobi(capa, comp, link, reqs, usage):
 	try:
 		# Create model
 		m = Model('edgeReqAssign')
+		m.setParam('OutputFlag', 0) # mute gurobi output
 
 		# Model data
 		# requests number
@@ -88,19 +89,21 @@ def gurobi(capa, comp, link, reqs, usage):
 		m.optimize()
 
 		#print result
-		varResult = m.getVars()
-		index = 0
-		print("       ", end="")
-		for i in nodes:
-			print(i.ljust(7), end="")
-		print("")
-		for i in range(NUM_REQUESTS):
-			print ('req' + str(i).ljust(2), end="    ")
-			for j in range(NUM_NODE):
-				print(int(abs(varResult[index].x)), end = "      ")
-				index += 1
-			print("")
+		# varResult = m.getVars()
+		# index = 0
+		# print("       ", end="")
+		# for i in nodes:
+		# 	print(i.ljust(7), end="")
+		# print("")
+		# for i in range(NUM_REQUESTS):
+		# 	print ('req' + str(i).ljust(2), end="    ")
+		# 	for j in range(NUM_NODE):
+		# 		print(int(abs(varResult[index].x)), end = "      ")
+		# 		index += 1
+		# 	print("")
 
+
+		# update usage information
 		count = 0
 		for j in nodes:
 			temp = 0
@@ -110,8 +113,8 @@ def gurobi(capa, comp, link, reqs, usage):
 			count += 1
 
 		# print(usage)
-		print('Object: minimum cost => ', m.objVal)
-		print('Optimization Time ==>%.5f second' %(m.Runtime))
+		# print('Object: minimum cost => ', m.objVal)
+		# print('Optimization Time ==>%.5f second' %(m.Runtime))
 
 
 	except GurobiError:

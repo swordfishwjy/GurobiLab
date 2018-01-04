@@ -132,11 +132,26 @@ linkCost[8][9] = 3
 linkCost[9][8] = 4
 linkCost[9][6] = 2
 
-# 设置此时刻的各node收到的requests：
-requests = np.array([], dtype = np.int16)
+# 生成此时刻的各node实际收到的requests：
+realRequests = np.zeros(ALL_NODE, dtype = np.int16)
 for i in range(10):
-	temp = random.randint(40,45)
-	requests = np.append(requests,temp)
+	temp = random.randint(40,70)
+	realRequests[i] = temp
+
+# 每个node可以使用的资源总和
+nodesCanUseCapa = np.zeros(ALL_NODE, dtype = np.int16)
+for i in range(ALL_NODE):
+	for j in range(ALL_NODE):
+		nodesCanUseCapa[i] += initCapacity[i][j]
+
+# 设置此时刻各node实际可以handle的requests 总数；超过capacity的请求被拒绝
+handleRequests = np.zeros(ALL_NODE, dtype = np.int16)
+for i in range(ALL_NODE):
+	if nodesCanUseCapa[i] < realRequests[i]:
+		handleRequests[i] = nodesCanUseCapa[i]
+	else:
+		handleRequests[i] = realRequests[i]
+
 
 # print(nodesNum)
 # print(linkCost) 
@@ -151,50 +166,127 @@ for i in range(10):
 #（3）该node在此timeslot会有多少request需要处理
 #（4）一共有几个nodes可用
 
-# 存储每个shared objects
-capa_nodes = []
-compCost_nodes = []
-linkCost_nodes = []
-requests_nodes = []
-#收集返回的usage 数据：
-usage_nodes = []
 
-p = Pool(10)
-manager = Manager()
-for i in range(10):
-	capa_pernode = manager.Array('i', initCapacity[i])	
-	compCost_pernode = manager.Array('i', compCost[i])
-	linkCost_pernode = manager.Array('i', linkCost[i])
-	requests_pernode = manager.Value('i', requests[i])
-	usage_pernode = manager.Array('i', initCapacity[i])
+updateCapa = np.array(initCapacity)
+testCapa = np.zeros(ALL_NODE, dtype = np.int16) #用来测试leftCapa是不是都为0
+for timeSlot in range(10):
+	# 存储每个shared objects
+	capa_nodes = []
+	compCost_nodes = []
+	linkCost_nodes = []
+	requests_nodes = []
+	#收集返回的usage 数据：
+	usage_nodes = []
 
-	capa_nodes.append(capa_pernode)
-	compCost_nodes.append(compCost_pernode)
-	linkCost_nodes.append(linkCost_pernode)
-	requests_nodes.append(requests_pernode)
-	usage_nodes.append(usage_pernode)
+	p = Pool(10)
+	manager = Manager()
+	for i in range(10):
+		capa_pernode = manager.Array('i', updateCapa[i])	
+		compCost_pernode = manager.Array('i', compCost[i])
+		linkCost_pernode = manager.Array('i', linkCost[i])
+		requests_pernode = manager.Value('i', handleRequests[i])
+		usage_pernode = manager.Array('i', updateCapa[i])
 
-
-	p.apply_async(gurobi, (capa_pernode, compCost_pernode, 
-		linkCost_pernode, requests_pernode, usage_pernode))
-
-p.close()
-p.join()
+		capa_nodes.append(capa_pernode)
+		compCost_nodes.append(compCost_pernode)
+		linkCost_nodes.append(linkCost_pernode)
+		requests_nodes.append(requests_pernode)
+		usage_nodes.append(usage_pernode)
 
 
-print("")
-print("The feedback of usage after one time iteration:")
-for i in range(ALL_NODE):
-	for j in usage_nodes[i]:
-		print (str(j).ljust(4), end ="")
+		p.apply_async(gurobi, (capa_pernode, compCost_pernode, 
+			linkCost_pernode, requests_pernode, usage_pernode))
+
+	p.close()
+	p.join()
+
+	# 根据usage 更新下一次的资源分布
+	# create 一个临时的array来保存中转的更新信息,每个node给别人的资源有多少别人没用，然后拿它们分配给给资源不够的邻居
+	leftCapa = np.zeros(ALL_NODE, dtype = np.int16)
+
+
+	# 临时更新用的tempCapa
+	tempCapa = np.array(updateCapa)
+	# 先统计可以减少的资源
+	for i in range(ALL_NODE):
+		for j in range(ALL_NODE):
+			if(usage_nodes[i][j] < updateCapa[i][j] and relMatrix[i][j]!=0):
+			# if(usage_nodes[i][j] < initCapacity[i][j] and initCapacity[i][j]!=0 and i!=j):
+				tempCapa[i][j] -= 1
+				leftCapa[j] += 1
+	# 再增加除了node本身以外的，给邻居的资源
+	while (np.array_equal(leftCapa, testCapa)!= True):
+		for i in range(ALL_NODE):
+			for j in range(ALL_NODE):
+				if(usage_nodes[i][j] == updateCapa[i][j] and i!=j and leftCapa[j]!=0 and relMatrix[i][j]!=0):
+					tempCapa[i][j] += 1
+					leftCapa[j] -= 1
+		#最后检查是否还有剩余资源给本身：
+		for j in range(ALL_NODE):
+			if(leftCapa[j]!=0):
+				tempCapa[j][j] += 1
+				leftCapa[j] -= 1
+
+
+	# renew updateCapa
+	updateCapa = np.array(tempCapa)
+
+	print(updateCapa)
 	print("")
-print("")
 
+	
+
+	# print("The updateCapa :")
+	# for i in range(ALL_NODE):
+	# 	for j in updateCapa[i]:
+	# 		print (str(j).ljust(4), end ="")
+	# 	print("")
+
+
+
+# print("")
+# print("The initCapacity :")
 # for i in range(ALL_NODE):
 # 	for j in capa_nodes[i]:
 # 		print (str(j).ljust(4), end ="")
 # 	print("")
 # print("")
+
+# print("nodesCanUseCapa: ")
+# print(nodesCanUseCapa)
+
+# print("realRequests: ")
+# print(realRequests)
+
+# print("handleRequests: ")
+# print(handleRequests)
+
+
+# print("The feedback of usage after one time iteration:")
+# for i in range(ALL_NODE):
+# 	for j in usage_nodes[i]:
+# 		print (str(j).ljust(4), end ="")
+# 	print("")
+# print("")
+
+# print("The updateCapa :")
+# for i in range(ALL_NODE):
+# 	for j in updateCapa[i]:
+# 		print (str(j).ljust(4), end ="")
+# 	print("")
+# print("")
+
+print("")
+print("The initCapacity :")
+for i in range(ALL_NODE):
+	for j in initCapacity[i]:
+		print (str(j).ljust(4), end ="")
+	print("")
+print("")
+
+# print("left capacity:")
+# print(leftCapa)
+
 print('Optimization Complete!!!!!!!!!!!!!!!!!!!!!!!!')
 
 
